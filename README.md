@@ -12,6 +12,12 @@ This is a plugin written specifically for the HAUNT series first game, Haunt:Isl
   
 This plugin expects that the only 2 playable characters/actors in the party will be named Charlotte and Henrik. The plugin's functionality will not work correctly if these names change.
 
+## Setup
+---
+Place the file HauntIslandMenu.js in *project_root_folder/js/plugins* and the file Clues.json in *project_root_folder/data*.
+
+Activate the plugin in RPG Maker MV by going to the Plugin Manager, adding an entry for HauntIslandMenu and setting status to "On". See plugin parameters for more info on configuration.
+
 ## Plugin Data
 ---
 All possible in-game clues are to be defined in Clues.json, located in project_root/data. Then, it is the game's party that then "knows about" different defined clues. Party "learns" about defined clues via the plugin commands **DiscoverClue** & **DiscoverAllClues**. (More on those below in the commands section)
