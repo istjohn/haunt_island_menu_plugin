@@ -28,6 +28,9 @@ This plugin can interpret 2 "traits" in the game: *Corruption* and *Insight*. Yo
  
 ## Plugin Parameters
 ---
+- Screen Width -- Exactly what it sounds like
+- Screen Height -- Also exactly what it sounds like
+- Fullscreen -- Yet again, is exactly what you think
 - Starting Corruption -- The initial value of the Corruption trait, between 0.0 and 1.0
 - Starting Insight -- The initial value of the Insight trait, between 0.0 and 1.0
 - Trait Gauge Color 1 -- The color of the "filled" portion of the trait gauge bar, as a hex code
@@ -77,3 +80,5 @@ Example: SetStoryPictureNumber 2 5
 Example: DiscoverClue 6
 
 **DiscoverAllClues** -- Used to add ALL defined clues in data/Clues.json to the party's list of known clues. No arguments.
+
+**SwapPartyLeader** -- Used to switch the active party leader. Slot 1 moves to 2 and 2 moves to 1.

@@ -17,6 +17,9 @@
  * @type number
  * @decimals 0
  * @default 815
+ *
+ * @param Fullscreen
+ * @type boolean
  * 
  * @param Starting Corruption
  * @desc The starting value of corruption trait (indicate that character uses this trait by entering "<traitType:Corruption>" in the actor's Note within the database.)
@@ -97,6 +100,7 @@
  * ==========================================================================
  * Screen Width
  * Screen Height
+ * Fullscreen
  * Starting Corruption
  *  The initial value of the Corruption trait, between 0.0 and 1.0
  * Starting Insight
@@ -158,6 +162,9 @@
  * DiscoverAllClues
  *  Used to add ALL defined clues in data/Clues.json to the party's list of known clues. (Has no arguments, just type the command)
  *
+ * SwapPartyLeader
+ *  Used to swap the order of the playable party so that slot 1 becomes slot 2 and vice versa. In other words, makes 2nd actor in the party the leader.
+ *
 */
 /*~struct~StoryPicture:
  * @param Image
@@ -205,6 +212,7 @@
 	var henrikStoryPictures = parameters["Henrik Story Pictures"] ? JSON.parse(parameters["Henrik Story Pictures"]) : null;
 	var _screenWidth = parseInt(parameters["Screen Width"]);
 	var _screenHeight = parseInt(parameters["Screen Height"]);
+	var fullscreen = parameters["Fullscreen"] === "false" ? false : true;
 
 	//=============================================================================
 	// Scene_Boot
@@ -212,8 +220,10 @@
 	var _SBS = Scene_Boot.prototype.start;
 	Scene_Boot.prototype.start = function() {
 		_SBS.call(this);
-		Graphics._switchFullScreen();
-	}
+		if(fullscreen) {
+			Graphics._switchFullScreen();
+		}
+	};
 	
 	//=============================================================================
 	// Scene_Base_Create
@@ -264,7 +274,6 @@
 		} else {
 			this.traitLevel = null;
 		}
-
 		this.storySoFarTextIndex = 0;
 		this.storyPictureIndex = 0;
 	};
@@ -302,18 +311,24 @@
 		}
 	};
 
+	Game_Actor.prototype.storySoFarTexts = function() {
+		if(this.name() === "Charlotte") {
+			return charlotteStoryTexts;
+		} else if(this.name() === "Henrik") {
+			return henrikStoryTexts;
+		} else {
+			return null;
+		}
+	};
+
 	Game_Actor.prototype.storySoFarText = function() {
 		var text;
-		if(this.name() === "Charlotte") {
-			text = charlotteStoryTexts[this.storySoFarTextIndex];
-		} else if(this.name() === "Henrik") {
-			text = henrikStoryTexts[this.storySoFarTextIndex];
+		
+		storyTexts = this.storySoFarTexts();
+		if(storyTexts) {
+			return JSON.parse([this.storySoFarTextIndex]);
 		} else {
-			text = null;
-		}
-
-		if(text) {
-			return JSON.parse(text);
+			return "";
 		}
 	};
 
@@ -360,6 +375,9 @@
 			for(var i = 0; i < $gameClues.clues().length; i++) {
 				$gameParty.discoverClue(i);
 			}
+		} else if(command === "SwapPartyLeader") {
+			$gameParty.swapOrder(0, 1);
+			$gameParty.setMenuActor($gameParty.leader());
 		}
 	};
 
@@ -627,11 +645,14 @@
 
 	//todo - change this to use the storyPicture at the specified index
 	Window_CharacterStatus.prototype.drawActorBust = function(actor, dx, dy) {
-		var storyPic = JSON.parse(actor.storyPictures()[actor.storyPictureIndex]);
 
-		if(storyPic) {
-			var bitmap = ImageManager.loadPicture(storyPic["Image"]);
-			this.contents.bltImage(bitmap, 0, 0, storyPic["Width"], storyPic["Height"], dx, dy, storyPic["Display Width"], storyPic["Display Height"]);
+		if(actor.storyPictures()) {
+			var storyPic = JSON.parse(actor.storyPictures()[actor.storyPictureIndex]);
+
+			if(storyPic) {
+				var bitmap = ImageManager.loadPicture(storyPic["Image"]);
+				this.contents.bltImage(bitmap, 0, 0, storyPic["Width"], storyPic["Height"], dx, dy, storyPic["Display Width"], storyPic["Display Height"]);
+			}	
 		}
 	};
 
