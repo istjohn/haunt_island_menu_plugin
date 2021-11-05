@@ -4,5 +4,11 @@
 {"id":3, "title":"Hidden Bloody Note", "text":"Clue text"},
 {"id":4, "title":"Weird Sounds from the Well", "text":"Clue text"},
 {"id":5, "title":"Strange creature sighted by the barn", "text":"Clue text"},
-{"id":6, "title":"Bloody trail from the backdoor", "text":"Clue text\nMore Clue text"}
+{"id":6, "title":"Bloody trail from the backdoor", "text":"Clue text\nMore Clue text"},
+{"id":7, "title":"Bullet casing found by the window", "text":"This is some longer clue text, wonder what happens to it"},
+{"id":8, "title":"Rubber duck floating in the bathtub", "text":"This, too, is longer clue text to test the screen and whatnot yes indeed...Is this longer than the screen yet? Cool I hope so, I wonder what it'll do..."},
+{"id":9, "title":"Costume kitty ears found in the bedroom", "text":"Once more this is some clue text that's just rambling"},
+{"id":10, "title":"Developer runs out of ideas", "text":"Clearly the developer can no longer think of things to write"},
+{"id":11, "title":"The last one to test pagination", "text":"Just testing pagination here..."},
+{"id":12, "title":"Clue with a much longer title than the others so we can see what it looks like", "text":"This clue has really long text, containing\nmultiple linebreaks, in order to test the word wrapping\nfeature on this screen so that long text is\ndisplayed correctly in all cases!"}
 ]

@@ -5,6 +5,18 @@
 /*:
  * @plugindesc Game-specific in-game menu for Haunt: Island, overrides default game menu.
  * @author Ienna St. John
+ *
+ * @param Screen Width
+ * @desc Width of the game screen
+ * @type number
+ * @decimals 0
+ * @default 1280
+ *
+ * @param Screen Height
+ * @desc Height of the game screen
+ * @type number
+ * @decimals 0
+ * @default 815
  * 
  * @param Starting Corruption
  * @desc The starting value of corruption trait (indicate that character uses this trait by entering "<traitType:Corruption>" in the actor's Note within the database.)
@@ -40,13 +52,11 @@
  * 
  * @param Charlotte Story Pictures
  * @desc List of Charlotte's pictures to be displayed in the character panel of the main menu.
- * @type file[]
- * @dir img/pictures
+ * @type struct<StoryPicture>[]
  * 
  * @param Henrik Story Pictures
  * @desc List of Henrik's pictures to be displayed in the character panel of the main menu.
- * @type file[]
- * @dir img/pictures
+ * @type struct<StoryPicture>[]
  *
  * @help
  *
@@ -85,6 +95,8 @@
  * ==========================================================================
  *  Plugin Parameters
  * ==========================================================================
+ * Screen Width
+ * Screen Height
  * Starting Corruption
  *  The initial value of the Corruption trait, between 0.0 and 1.0
  * Starting Insight
@@ -147,6 +159,34 @@
  *  Used to add ALL defined clues in data/Clues.json to the party's list of known clues. (Has no arguments, just type the command)
  *
 */
+/*~struct~StoryPicture:
+ * @param Image
+ * @type file
+ * @dir img/pictures
+ *
+ * @param Width
+ * @type number
+ * @decimals 0
+ * @desc Width of the source image
+ *
+ * @param Height
+ * @type number
+ * @decimals 0
+ * @desc Height of the source image
+ *
+ * @param Display Width
+ * @type number
+ * @decimals 0
+ * @desc Width of the image when displayed in the menu
+ * @default 140
+ *
+ * @param Display Height
+ * @type number
+ * @decimals 0
+ * @desc Height of the image when displayed in the menu
+ * @default 600
+ *
+ */
 
 (function() {
 
@@ -155,14 +195,37 @@
 
 	//Parse/retrieve plugin parameters
 	var parameters = PluginManager.parameters("HauntIslandMenu");
-	var startingCorruption = parameters["Starting Corruption"];
-	var startingInsight = parameters["Starting Insight"];
+	var startingCorruption = parseFloat(parameters["Starting Corruption"]);
+	var startingInsight = parseFloat(parameters["Starting Insight"]);
 	var traitGaugeColor1 = String(parameters["Trait Gauge Color 1"]);
 	var traitGaugeColor2 = String(parameters["Trait Gauge Color 2"]);
 	var charlotteStoryTexts = parameters["Charlotte Story Texts"] ? JSON.parse(parameters["Charlotte Story Texts"]) : null;
 	var henrikStoryTexts = parameters["Henrik Story Texts"] ? JSON.parse(parameters["Henrik Story Texts"]) : null;
 	var charlotteStoryPictures = parameters["Charlotte Story Pictures"] ? JSON.parse(parameters["Charlotte Story Pictures"]) : null;
 	var henrikStoryPictures = parameters["Henrik Story Pictures"] ? JSON.parse(parameters["Henrik Story Pictures"]) : null;
+	var _screenWidth = parseInt(parameters["Screen Width"]);
+	var _screenHeight = parseInt(parameters["Screen Height"]);
+
+	//=============================================================================
+	// Scene_Boot
+	//=============================================================================
+	var _SBS = Scene_Boot.prototype.start;
+	Scene_Boot.prototype.start = function() {
+		_SBS.call(this);
+		Graphics._switchFullScreen();
+	}
+	
+	//=============================================================================
+	// Scene_Base_Create
+	//=============================================================================
+	var _SBC = Scene_Base.prototype.create;
+	Scene_Base.prototype.create = function() {
+		_SBC.call(this);
+		Graphics.height    = _screenHeight;
+		Graphics.width     = _screenWidth;
+		Graphics.boxWidth  = _screenWidth;
+		Graphics.boxHeight = _screenHeight;
+	};
 
 	//-----------------------------------------------------------------------------
 	// Game_Party additions
@@ -207,17 +270,17 @@
 	};
 
 	Game_Actor.prototype.addToTraitLevel = function(traitLevelDelta) {
-		var newTraitLevel = Math.ceil(this.traitLevel + traitLevelDelta, 1.0);
+		var newTraitLevel = Math.min(this.traitLevel + traitLevelDelta, 1.0);
 		this.traitLevel = newTraitLevel;
 	};
 
 	Game_Actor.prototype.subtractFromTraitLevel = function(traitLevelDelta) {
-		var newTraitLevel = Math.floor(this.traitLevel - traitLevelDelta, 0.0);
+		var newTraitLevel = Math.max(this.traitLevel - traitLevelDelta, 0.0);
 		this.traitLevel = newTraitLevel;
 	};
 
 	Game_Actor.prototype.setTraitLevel = function(newTraitLevel) {
-		this.traitLevel = newTraitLevel;
+		this.traitLevel = Math.min(newTraitLevel, 1.0);
 	};
 
 	Game_Actor.prototype.setStorySoFarTextIndex = function(newTextIndex) {
@@ -391,6 +454,42 @@
 		}
 	};
 
+	Window_Base.prototype.wrapText = function(text, wrapAt) {
+		var lines = [];
+		var words = text.split(" ");
+		var nextLine = "";
+
+		words.forEach(function(word) {
+			//If the total text width of every word already on the next line PLUS this next word is < our wrap limit, we add the word
+			if(this.textWidth(nextLine + word + " ") < wrapAt) {
+				nextLine += word;
+				nextLine += " ";
+			
+			//Otherwise, adding this next word would make the line longer than the limit. End the line
+			} else {
+				nextLine += "\n";
+			}
+
+			//If we ended this line, or this was the last word, then we add it to our list of lines and prepare for the next line
+			if(nextLine.endsWith("\n") || words.indexOf(word) == words.length-1) {
+				lines.push(nextLine);
+
+				//current word starts the next line
+				nextLine = word + " ";
+			}
+
+		}, this);
+
+		return lines;
+	};
+
+	Window_Base.prototype.prepareTextForWrapping = function(text) {
+		if(text.contains("\n")) {
+			return text.split("\n").join(" ");
+		}
+		return text;
+	};
+
 
 	//-----------------------------------------------------------------------------
 	// Main menu overwriting
@@ -488,12 +587,27 @@
 		this.contents.clear();
 		var actor = $gameParty.menuActor();
 		var midX = (Graphics.width / 2) - 330;
-		var rightSideX = Graphics.width - 430;
+		var rightSideX = midX + 300;
 		this.drawActorName(actor, midX, 20, 120);
-		this.drawActorBust(actor, 0, 0, 126, 370, rightSideX, 50, 140, 600);
+		this.drawActorBust(actor, rightSideX, 50);
 		this.drawActorClass(actor, midX, 120, 120);
 		this.drawTraitGauge(midX);
-		this.drawTextEx(actor.storySoFarText(), 0, 200);
+
+		var storyText = actor.storySoFarText();
+		//Handle text wrapping for the story so far text. Wrap before it reaches the picture
+		if(this.textWidth(storyText) > rightSideX) {
+			storyText = this.prepareTextForWrapping(storyText);
+			var textY = 200;
+			var textLines = this.wrapText(storyText, rightSideX-10);
+			textLines.forEach(function(textLine) {
+				this.textWidth(textLine);
+				this.drawTextEx(textLine, 0, textY);
+				textY += 30;
+			}, this);
+
+		} else {
+			this.drawTextEx(storyText, 0, 200);
+		}
 	};
 
 	Window_CharacterStatus.prototype.drawTraitGauge = function(midX) {
@@ -512,10 +626,17 @@
 	};
 
 	//todo - change this to use the storyPicture at the specified index
-	Window_CharacterStatus.prototype.drawActorBust = function(actor, x, y, width, height, dx, dy, dw, dh) {
-		var storyPic = actor.storyPictures()[actor.storyPictureIndex];
-		var bitmap = ImageManager.loadPicture(storyPic);
-		this.contents.bltImage(bitmap, x, y, width, height, dx, dy, dw, dh);
+	Window_CharacterStatus.prototype.drawActorBust = function(actor, dx, dy) {
+		var storyPic = JSON.parse(actor.storyPictures()[actor.storyPictureIndex]);
+
+		if(storyPic) {
+			var bitmap = ImageManager.loadPicture(storyPic["Image"]);
+			this.contents.bltImage(bitmap, 0, 0, storyPic["Width"], storyPic["Height"], dx, dy, storyPic["Display Width"], storyPic["Display Height"]);
+		}
+	};
+
+	Window_CharacterStatus.prototype.windowWidth = function() {
+		return Graphics.boxWidth - MENU_COMMANDS_SIZE;
 	};
 
 	Window_CharacterStatus.prototype.windowHeight = function() {
@@ -698,7 +819,7 @@
 		var clue = this._data[index];
 		if(clue._clueTitle) {
 			var rect = this.itemRectForText(index);
-			this.drawText(clue._clueTitle, rect.x, rect.y, 300, 'left');	
+			this.drawText(clue._clueTitle, rect.x, rect.y, 600, 'left');	
 		}
 	};
 
@@ -744,6 +865,14 @@
 		return this._data ? this._data.length : 0;
 	};
 
+	Window_ClueList.prototype.maxPageRows = function () {
+		return 10;
+	};
+
+	Window_ClueList.prototype.maxPageItems = function () {
+    	return this.maxPageRows() * this.maxCols();
+	};
+
 
 	//---------------------------------------------------------------
 	// Window_ClueDetails
@@ -771,7 +900,27 @@
 	Window_ClueDetails.prototype.refresh = function() {
 		this.contents.clear();
 		if(this._clue) {
-			this.drawTextEx(this._clue._clueText, 0, 20);
+			var clueText = this._clue._clueText;
+
+			//if clue text width is greater than the window width, we need to break things up.
+			//find the last space within the width of the window
+			if(this.textWidth(clueText) > this.width) {
+
+				//check if the text is already manually broken up with newlines. If it's manually broken up with newlines, but it's
+				//still wider than the window, replace the newlines with spaces so we can handle things manually.
+				clueText = this.prepareTextForWrapping(clueText);
+
+				var textY = 20;
+				var textLines = this.wrapText(clueText, this.width-10);
+				textLines.forEach(function(textLine) {
+					this.drawTextEx(textLine, 0, textY);
+					textY += 30;
+				}, this);
+
+			//Otherwise, text fits within the window, just print it as is
+			} else {
+				this.drawTextEx(this._clue._clueText, 0, 20);
+			}
 		}
 	};
 
