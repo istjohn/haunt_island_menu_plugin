@@ -324,9 +324,10 @@
 	Game_Actor.prototype.storySoFarText = function() {
 		var text;
 		
+
 		storyTexts = this.storySoFarTexts();
 		if(storyTexts) {
-			return JSON.parse([this.storySoFarTextIndex]);
+			return JSON.parse(storyTexts[this.storySoFarTextIndex]);
 		} else {
 			return "";
 		}
