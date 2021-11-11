@@ -165,6 +165,20 @@
  * SwapPartyLeader
  *  Used to swap the order of the playable party so that slot 1 becomes slot 2 and vice versa. In other words, makes 2nd actor in the party the leader.
  *
+ * AssignTraitTypeToVariable actorID variableID
+ *  Used to store the specified actor's trait type (corruption or insight) in a game variable
+ *  actor ID = actor ID of Charlotte or Henrik
+ *  variableID = the ID of the variable to store the trait type in
+ *  Example:
+ *   AssignTraitTypeToVariable 1 1
+ *
+ * AssignTraitLevelToVariable actorID variableID
+ *  Used to store the specified actor's trait level (corruption or insight) in a game variable
+ *  actor ID = actor ID of Charlotte or Henrik
+ *  variableID = the ID of the variable to store the trait level in
+ *  Example:
+ *   AssignTraitLevelToVariable 2 5
+ *
 */
 /*~struct~StoryPicture:
  * @param Image
@@ -379,6 +393,16 @@
 		} else if(command === "SwapPartyLeader") {
 			$gameParty.swapOrder(0, 1);
 			$gameParty.setMenuActor($gameParty.leader());
+		} else if(command === "AssignTraitTypeToVariable") {
+			var actor = $gameActors.actor(parseInt(args[0]));
+			if(actor && actor.traitType) {
+				$gameVariables.setValue(parseInt(args[1]), actor.traitType);
+			}
+		} else if(command === "AssignTraitLevelToVariable") {
+			var actor = $gameActors.actor(parseInt(args[0]));
+			if(actor && actor.traitLevel) {
+				$gameVariables.setValue(parseInt(args[1]), actor.traitLevel);
+			}
 		}
 	};
 
